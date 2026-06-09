@@ -206,6 +206,12 @@ wheels = [
 ]
 
 [[package]]
+name = "dataloader"
+version = "2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b4/73/1f6af2e50749071b763e0b963fd23de2b00e3846ebf3296e025081a59d00/dataloader-2.0.tar.gz", hash = "sha256:eb13b433ac0a7634f680065ed579a747e360e1fb79da47005018f9ed6dbc48ec", size = 9130, upload-time = "2016-03-31T18:52:26.015Z" }
+
+[[package]]
 name = "filelock"
 version = "3.29.0"
 source = { registry = "https://pypi.org/simple" }
@@ -349,6 +355,7 @@ name = "makemore"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "dataloader" },
     { name = "matplotlib" },
     { name = "requests" },
     { name = "torch" },
@@ -357,6 +364,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "dataloader", specifier = ">=2.0" },
     { name = "matplotlib", specifier = ">=3.10.9" },
     { name = "requests", specifier = ">=2.34.2" },
     { name = "torch", specifier = ">=2.12.0" },
