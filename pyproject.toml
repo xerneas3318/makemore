@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "dataloader>=2.0",
+    "gradio>=6.17.3",
     "matplotlib>=3.10.9",
     "requests>=2.34.2",
     "torch>=2.12.0",
