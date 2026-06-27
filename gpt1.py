@@ -191,7 +191,8 @@ class LM(nn.Module):
 
 
 model = LM().to(device)
-model = torch.compile(model)
+if device.type == "cuda":
+    model = torch.compile(model)   # inductor's Metal/MPS codegen is broken; only compile on CUDA
 optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
 scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma = 0.99995)
 
