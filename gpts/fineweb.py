@@ -107,7 +107,7 @@ def main():
         bar = tqdm(total=len(fw), unit="doc", desc="tokenizing",
                    dynamic_ncols=True, smoothing=0.05)
 
-        for tokens in pool.imap(tokenize, fw, chunksize=16):
+        for tokens in pool.imap_unordered(tokenize, fw, chunksize=256):
             total_tokens += len(tokens)
 
             if count + len(tokens) < shard_size:
@@ -125,12 +125,13 @@ def main():
                 count = leftover
 
             bar.update(1)
-            elapsed = time.time() - start
-            bar.set_postfix(
-                shards=shard_index,
-                tokens=f"{total_tokens / 1e9:.2f}B",
-                rate=f"{total_tokens / max(elapsed, 1e-9) / 1e6:.1f}M tok/s",
-            )
+            if bar.n % 2000 == 0:
+                elapsed = time.time() - start
+                bar.set_postfix(
+                    shards=shard_index,
+                    tokens=f"{total_tokens / 1e9:.2f}B",
+                    rate=f"{total_tokens / max(elapsed, 1e-9) / 1e6:.1f}M tok/s",
+                )
 
         # flush whatever is left in the buffer as the final shard
         if count != 0:

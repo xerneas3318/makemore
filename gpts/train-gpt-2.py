@@ -5,7 +5,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import tiktoken
 import tqdm
+from tqdm import tqdm
 import os
+import glob
 import matplotlib
 import numpy as np
 matplotlib.use('Agg')
@@ -39,14 +41,13 @@ if master_process:
 # -----------------------------------------------------------------------------
 # data
 
-
-with open('input.txt', 'r') as f:
-    text = f.read()
-data = text
+log_dir = "logs"
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, "train.log")
+if master_process:
+    open(log_file, "w").close()
 
 enc = tiktoken.get_encoding("gpt2")
-tr_tokens = enc.encode(data[:1000000])
-tst_tokens = enc.encode(data[1000000:])
 
 torch.set_float32_matmul_precision('high')
 
@@ -270,6 +271,10 @@ model = torch.compile(model)
 if ddp:
     model = DDP(model, device_ids=[ddp_local_rank])
 raw_model = model.module if ddp else model
+save_model = getattr(raw_model, "_orig_mod", raw_model)  # unwrap torch.compile -> clean state_dict keys
+ckpt_dir = "/mnt/datasets/checkpoints"
+if master_process:
+    os.makedirs(ckpt_dir, exist_ok=True)
 tr_loss = []
 model.train()
 
@@ -292,6 +297,8 @@ for step in tqdm(range(max_steps), disable=not master_process):
         if ddp:
             dist.all_reduce(val_accum, op=dist.ReduceOp.AVG)
         if master_process:
+            with open(log_file, "a") as f:
+                f.write(f"{step} val {val_accum.item():.6f}\n")
             print(f"step {step:5d} | val loss {val_accum.item():.4f}")
 
     # 
@@ -317,8 +324,26 @@ for step in tqdm(range(max_steps), disable=not master_process):
 
     if master_process:
         tr_loss.append(loss_accum.item())
+        with open(log_file, "a") as f:
+            f.write(f"{step} train {loss_accum.item():.6f} norm {norm:.4f}\n")
+        
         if step % 100 == 0:
-            print(f"step {step:5d} | loss {loss_accum.item():.4f} | norm {norm:.2f}") 
+            print(f"step {step:5d} | loss {loss_accum.item():.4f} | norm {norm:.2f}")
+
+    # checkpoint every 200 steps (and at the end); keep the 3 most recent
+    if master_process and step > 0 and (step % 200 == 0 or last_step):
+        path = os.path.join(ckpt_dir, f"ckpt_{step:06d}.pt")
+        torch.save({
+            "model": save_model.state_dict(),
+            "optimizer": optimizer.state_dict(),
+            "scheduler": scheduler.state_dict(),
+            "step": step,
+            "tr_loss": tr_loss,
+            "vocab_size": 50304,
+        }, path)
+        for old in sorted(glob.glob(os.path.join(ckpt_dir, "ckpt_*.pt")))[:-3]:
+            os.remove(old)
+        print(f"saved checkpoint -> {path}")
     
 
 # -----------------------------------------------------------------------------
