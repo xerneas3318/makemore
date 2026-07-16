@@ -7,6 +7,7 @@ Loads the checkpoint once and serves an interactive text-generation UI.
 """
 import argparse
 import os
+import random
 
 import gradio as gr
 import tiktoken
@@ -32,6 +33,9 @@ ENC = tiktoken.get_encoding("gpt2")
 STEP = _ckpt.get("step")
 GPU_NAME = torch.cuda.get_device_name(0) if DEVICE == "cuda" else "CPU"
 print(f"ready (step {STEP}, device {DEVICE})")
+
+
+MAX_SAMPLES = 6
 
 
 def run(prompt, max_new_tokens, temperature, top_k, num_samples, seed):
@@ -60,26 +64,31 @@ def run(prompt, max_new_tokens, temperature, top_k, num_samples, seed):
         )
 
     samples = [ENC.decode(out[i].tolist()) for i in range(int(num_samples))]
-    return "\n\n" + ("\n\n" + "─" * 60 + "\n\n").join(
-        f"▌ Sample {i + 1}\n\n{s}" for i, s in enumerate(samples)
-    )
+    updates = []
+    for i in range(MAX_SAMPLES):
+        if i < len(samples):
+            updates.append(gr.update(value=samples[i], visible=True))
+        else:
+            updates.append(gr.update(value="", visible=False))
+    return updates
 
 
-with gr.Blocks(title="GPT-2 124M — edu-FineWeb 10B") as demo:
+with gr.Blocks(title="GPT-2 124M (edu-FineWeb 10B)") as demo:
     gr.Markdown(
         f"""
-        # GPT-2 124M — edu-FineWeb 10B
+        # GPT-2 124M (edu-FineWeb 10B)
+
         A 124M-parameter GPT-2 trained from scratch on 10B tokens of edu-FineWeb.
-        **Checkpoint:** step {STEP} · val loss ≈ 3.10 · running on **{GPU_NAME}**.
+        Checkpoint: step {STEP}, val loss ~3.10, running on {GPU_NAME}.
 
         Enter a prompt and the model continues it. This is a small base model
-        (not instruction-tuned), so it *continues* text rather than answering questions.
+        (not instruction-tuned), so it continues text rather than answering questions.
         """
     )
     with gr.Row():
         with gr.Column(scale=2):
             prompt = gr.Textbox(
-                label="Prompt", value="Once upon a time", lines=3,
+                label="Prompt", value="Here is a simple recipe for bread:", lines=3,
                 placeholder="Type a prompt for the model to continue...",
             )
             with gr.Row():
@@ -88,10 +97,15 @@ with gr.Blocks(title="GPT-2 124M — edu-FineWeb 10B") as demo:
             with gr.Row():
                 temperature = gr.Slider(0.1, 1.5, value=0.9, step=0.05, label="Temperature")
                 top_k = gr.Slider(0, 200, value=50, step=5, label="Top-k (0 = off)")
-            seed = gr.Number(value=1337, label="Seed", precision=0)
+            with gr.Row(equal_height=True):
+                seed = gr.Number(value=1337, label="Seed", precision=0, scale=3)
+                rand_seed_btn = gr.Button("🎲 Randomize", scale=1)
             btn = gr.Button("Generate", variant="primary")
         with gr.Column(scale=3):
-            output = gr.Textbox(label="Generated text", lines=22)
+            outputs = [
+                gr.Textbox(label=f"Sample {i + 1}", lines=10, visible=(i < 2))
+                for i in range(MAX_SAMPLES)
+            ]
 
     gr.Examples(
         examples=[
@@ -103,7 +117,8 @@ with gr.Blocks(title="GPT-2 124M — edu-FineWeb 10B") as demo:
         inputs=[prompt, max_new_tokens, temperature, top_k, num_samples, seed],
     )
 
-    btn.click(run, [prompt, max_new_tokens, temperature, top_k, num_samples, seed], output)
+    btn.click(run, [prompt, max_new_tokens, temperature, top_k, num_samples, seed], outputs)
+    rand_seed_btn.click(lambda: random.randint(0, 2**31 - 1), outputs=seed)
 
 
 if __name__ == "__main__":
