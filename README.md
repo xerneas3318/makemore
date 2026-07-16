@@ -4,6 +4,8 @@
 
 Building language models from scratch, starting at a character level bigram and ending at a 124M parameter GPT-2 trained on 10 billion tokens.
 
+[Model on Hugging Face](https://huggingface.co/Xerneas3318/gpt2-124m-edu-fineweb10b)
+
 ![Python](https://img.shields.io/badge/python-3.13-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-ee4c2c)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
@@ -28,7 +30,7 @@ Building language models from scratch, starting at a character level bigram and 
 
 ## About The Project
 
-This repository is my way through Andrej Karpathy's [Neural Networks: Zero to Hero](https://karpathy.ai/zero-to-hero.html) course, rebuilt in my own words and then pushed further into a full GPT-2 reproduction. It begins with a bigram character model and ends with a 124M parameter GPT-2 trained from scratch on the FineWeb-Edu 10B token sample, including a data pipeline, distributed training, checkpointing, inference, and a Gradio demo.
+This repository is my way through Andrej Karpathy's [Neural Networks: Zero to Hero](https://karpathy.ai/zero-to-hero.html) course and his [build-nanogpt](https://github.com/karpathy/build-nanogpt) GPT-2 reproduction, rebuilt in my own words. It begins with a bigram character model and ends with a 124M parameter GPT-2 trained from scratch on the FineWeb-Edu 10B token sample, including a data pipeline, distributed training, checkpointing, inference, and a Gradio demo.
 
 Every model here was written to understand the mechanics rather than just to run something: manual backprop, batch normalization, residual connections, self attention, byte pair encoding, mixed precision, gradient accumulation, and multi GPU data parallelism.
 
@@ -183,4 +185,4 @@ I could push the validation loss lower with more tokens, longer schedules, or hy
 
 xerneas3318 on [GitHub](https://github.com/xerneas3318)
 
-Project link: [https://github.com/xerneas3318/makemore](https://github.com/xerneas3318/makemore)
+[Model on Hugging Face](https://huggingface.co/Xerneas3318/gpt2-124m-edu-fineweb10b)
