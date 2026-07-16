@@ -1,5 +1,3 @@
-<a id="readme-top"></a>
-
 <div align="center">
 
 # Neural Networks: Zero to GPT-2
@@ -49,9 +47,6 @@ GPT-2 124M training loss across roughly 19,072 optimizer steps. Final validation
 * [Gradio](https://www.gradio.app/) (interactive demos)
 * [uv](https://github.com/astral-sh/uv) (environment and packaging)
 * NumPy, matplotlib
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 ## The Models
 
 The repository follows the same progression as the course, one folder per stage, each building on the last.
@@ -64,9 +59,6 @@ The repository follows the same progression as the course, one folder per stage,
 | WaveNet | [`wavenet/`](wavenet/) | A hierarchical model that grows its receptive field in a tree, in the spirit of WaveNet. |
 | GPT (nanoGPT) | [`gpts/gpt.ipynb`](gpts/gpt.ipynb) | A character level transformer trained on tiny Shakespeare, the "let's build GPT" step: self attention, multi head attention, and residual blocks. |
 | GPT-2 124M | [`gpts/train-gpt-2.py`](gpts/train-gpt-2.py) | A from scratch GPT-2 (124M) trained on 10B tokens of FineWeb-Edu, with distributed data parallel training, gradient accumulation, checkpointing, inference, and a live demo. |
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 ## Getting Started
 
 ### Prerequisites
@@ -86,9 +78,6 @@ The repository follows the same progression as the course, one folder per stage,
    ```sh
    uv sync
    ```
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 ## Usage
 
 ### The notebooks
@@ -150,9 +139,6 @@ uv run python gpts/app.py --share    # temporary public gradio.live link
 ```
 
 The demo loads the newest checkpoint from `data/checkpoints`. The trained checkpoint from this project lives on [Hugging Face](https://huggingface.co/Xerneas3318/gpt2-124m-edu-fineweb10b).
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 ## The GPT-2 Run
 
 The final stage reproduces GPT-2 124M end to end.
@@ -163,9 +149,6 @@ The final stage reproduces GPT-2 124M end to end.
 * **Infrastructure:** trained on two RTX 5090 GPUs on RunPod, with a babysit script that resumes on failure and a checkpoint every 200 steps so an interruption never costs the whole run.
 * **Training time:** roughly 7 hours for the full run, using gradient accumulation to keep the 524,288 token effective batch across the two GPUs.
 * **Result:** about 19,072 steps (roughly one pass over the data) to a validation loss near 3.10.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 ## What I Learned
 
 Working through every stage by hand, the ideas that stuck:
@@ -177,30 +160,19 @@ Working through every stage by hand, the ideas that stuck:
 * Practical training at scale: mixed precision, gradient accumulation to hit a large effective batch on a small card, learning rate schedules, and gradient clipping.
 * Distributed data parallel training, how gradients sync across GPUs, and how sharding and checkpointing keep long runs safe.
 * The full lifecycle: dataset preparation, cloud training, resuming from checkpoints, inference, and shipping a demo.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 ## Where I'm Stopping and Why
 
 Reproducing GPT-2 124M was the goal of this series, and it is done. I am choosing to stop here rather than keep tuning this model further.
 
 I could push the validation loss lower with more tokens, longer schedules, or hyperparameter sweeps, but the returns would be incremental and the architecture is now several years old. I think my time is better spent building a more modern architecture from what I learned here, since that is closer to where the field actually is and should be more valuable to work through. Reproducing a 2019 model taught me the fundamentals; the natural next step is to apply them to current designs (things like rotary position embeddings, RMSNorm, SwiGLU, grouped query attention, and modern training recipes) rather than to keep polishing GPT-2.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 ## Acknowledgments
 
 * [Andrej Karpathy, Neural Networks: Zero to Hero](https://karpathy.ai/zero-to-hero.html), including [makemore](https://github.com/karpathy/makemore), [nanoGPT](https://github.com/karpathy/nanoGPT), and [build-nanogpt](https://github.com/karpathy/build-nanogpt). This project follows that course closely.
 * [Best-README-Template](https://github.com/othneildrew/Best-README-Template) by othneildrew, which this README is based on.
 * [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) by Hugging Face, the training data for GPT-2.
 * [RunPod](https://www.runpod.io/) for the cloud GPUs, and [Gradio](https://www.gradio.app/) for the demos.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 ## Contact
 
 xerneas3318 on [GitHub](https://github.com/xerneas3318)
 
 Project link: [https://github.com/xerneas3318/makemore](https://github.com/xerneas3318/makemore)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
