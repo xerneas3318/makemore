@@ -15,6 +15,23 @@ Needs the `datasets` package:  uv add datasets
 """
 
 import os
+
+# default data location: a `data/` folder at the repo root (one level up from
+# this script's `gpts/` dir), resolved absolutely so it works from any cwd.
+DEFAULT_DATA_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, "data")
+)
+
+# Route ALL Hugging Face caches onto the big data disk *before* importing
+# datasets/huggingface_hub. Otherwise HF downloads default to ~/.cache on the
+# small root filesystem and fill it (that caused OSError: No space left on
+# device mid-download). HF_HOME covers the hub download cache, which
+# load_dataset's own cache_dir does NOT control.
+os.environ.setdefault("HF_HOME", os.path.join(DEFAULT_DATA_ROOT, "hf_home"))
+
+# Xet streaming was stalling in this environment; force plain HTTPS transfers.
+os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+
 import time
 import argparse
 import multiprocessing as mp
@@ -45,37 +62,25 @@ def parse_args():
     p.add_argument("--dataset", default="HuggingFaceFW/fineweb-edu", help="HF dataset id")
     p.add_argument("--name", default="sample-10BT", help="dataset config / subset name")
     p.add_argument("--shard-size", type=int, default=int(1e8), help="tokens per shard (default 100M)")
-    p.add_argument("--data-root", default="/mnt/datasets",
-                   help="base dir on the data SSD; shards + HF cache go under here")
+    p.add_argument("--data-root", default=DEFAULT_DATA_ROOT,
+                   help="base data dir; shards + HF cache go under here "
+                        "(default: <repo>/data)")
     p.add_argument("--output-dir", default=None,
                    help="where to write shards (default: <data-root>/edu_fineweb10B)")
     p.add_argument("--cache-dir", default=None,
                    help="HF datasets download cache (default: <data-root>/hf_cache)")
     p.add_argument("--nprocs", type=int, default=None,
                    help="tokenizer worker processes (default: cpu_count // 2)")
-    p.add_argument("--no-mount-check", action="store_true",
-                   help="skip the check that --data-root is a real mountpoint")
     return p.parse_args()
 
 
 def main():
     args = parse_args()
 
-    # everything big lands on the data SSD: both the tokenized shards and the
+    # everything big lands under the data dir: both the tokenized shards and the
     # raw HF download cache (~27 GB) which otherwise defaults to ~/.cache.
     output_dir = args.output_dir or os.path.join(args.data_root, "edu_fineweb10B")
     cache_dir = args.cache_dir or os.path.join(args.data_root, "hf_cache")
-
-    # guard: if the data SSD isn't actually mounted, /mnt/datasets is just an
-    # empty dir on the root drive and we'd silently fill it. Refuse unless told.
-    if not args.no_mount_check and not os.path.ismount(args.data_root):
-        raise SystemExit(
-            f"'{args.data_root}' is not a mounted filesystem.\n"
-            f"Mount the data SSD first, e.g.:\n"
-            f"    sudo mount /dev/nvme1n1p1 {args.data_root}\n"
-            f"    sudo chown $USER:$USER {args.data_root}\n"
-            f"(or pass --no-mount-check to write there anyway)."
-        )
 
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(cache_dir, exist_ok=True)
@@ -88,8 +93,12 @@ def main():
     print(f"shard size:  {shard_size:,} tokens")
     print(f"workers:     {nprocs}")
 
-    # non-streaming load so len(fw) is known -> the progress bar gets a real ETA
-    fw = load_dataset(args.dataset, name=args.name, split="train", cache_dir=cache_dir)
+    # streaming load: pull + tokenize documents on the fly instead of staging the
+    # whole dataset to disk as parquet + arrow (~70 GB) first. This keeps disk use
+    # low (only the output shards) and avoids the slow arrow-build step. Trade-off:
+    # len(fw) is unknown, so the progress bar counts docs without a total/ETA.
+    fw = load_dataset(args.dataset, name=args.name, split="train",
+                      cache_dir=cache_dir, streaming=True)
 
     def save_shard(idx, n_tokens):
         split = "val" if idx == 0 else "train"
@@ -104,7 +113,7 @@ def main():
     start = time.time()
 
     with mp.Pool(nprocs) as pool:
-        bar = tqdm(total=len(fw), unit="doc", desc="tokenizing",
+        bar = tqdm(unit="doc", desc="tokenizing",
                    dynamic_ncols=True, smoothing=0.05)
 
         for tokens in pool.imap_unordered(tokenize, fw, chunksize=256):

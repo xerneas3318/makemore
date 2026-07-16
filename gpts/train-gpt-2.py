@@ -41,6 +41,11 @@ if master_process:
 # -----------------------------------------------------------------------------
 # data
 
+# data + checkpoints live under a `data/` folder at the repo root (one level up
+# from this script's `gpts/` dir), resolved absolutely so it works from any cwd.
+DATA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "data"))
+SHARD_DIR = os.path.join(DATA_ROOT, "edu_fineweb10B")
+
 log_dir = "logs"
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, "train.log")
@@ -52,7 +57,7 @@ enc = tiktoken.get_encoding("gpt2")
 torch.set_float32_matmul_precision('high')
 
 T = 1024
-B = 8
+B = 32
 
 total_batch_size = 524288 
 assert total_batch_size % (B * T * ddp_world_size) == 0
@@ -93,7 +98,7 @@ def load_tokens(filename):
 
 class DataLoaderLite:
     def __init__(self, B, T, process_rank, num_processes, split,
-                 data_root="/mnt/datasets/edu_fineweb10B"):
+                 data_root=SHARD_DIR):
         self.B, self.T = B, T
         self.process_rank = process_rank
         self.num_processes = num_processes
@@ -272,13 +277,30 @@ if ddp:
     model = DDP(model, device_ids=[ddp_local_rank])
 raw_model = model.module if ddp else model
 save_model = getattr(raw_model, "_orig_mod", raw_model)  # unwrap torch.compile -> clean state_dict keys
-ckpt_dir = "/mnt/datasets/checkpoints"
+ckpt_dir = os.path.join(DATA_ROOT, "checkpoints")
 if master_process:
     os.makedirs(ckpt_dir, exist_ok=True)
+
+# resume from the latest checkpoint if one exists, so an interrupted/crashed run
+# picks up where it left off instead of restarting from step 0. All ranks load
+# the same checkpoint to keep weights in sync.
 tr_loss = []
+start_step = 0
+_ckpts = sorted(glob.glob(os.path.join(ckpt_dir, "ckpt_*.pt")))
+if _ckpts:
+    _ckpt = torch.load(_ckpts[-1], map_location=device, weights_only=False)
+    save_model.load_state_dict(_ckpt["model"])
+    optimizer.load_state_dict(_ckpt["optimizer"])
+    scheduler.load_state_dict(_ckpt["scheduler"])
+    start_step = _ckpt["step"] + 1
+    tr_loss = _ckpt.get("tr_loss", [])
+    if master_process:
+        print(f"resumed from {_ckpts[-1]} at step {start_step}")
+
 model.train()
 
-for step in tqdm(range(max_steps), disable=not master_process):
+for step in tqdm(range(start_step, max_steps), initial=start_step, total=max_steps,
+                 disable=not master_process):
     last_step = (step == max_steps - 1)
 
     # val

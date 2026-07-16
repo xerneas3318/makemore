@@ -1,0 +1,79 @@
+================================================================
+GPT-2 TRAINING RUN - FINAL STATUS REPORT
+================================================================
+Timestamp:        2026-07-15T21:36:23.487359+00:00
+RunPod pod id:    whm8232fel5hbr
+
+----------------------------------------------------------------
+1. FINAL CHECKPOINT VERIFICATION
+----------------------------------------------------------------
+Path:             /workspace/makemore/data/checkpoints/ckpt_019072.pt
+Load result:      OK (torch.load, weights_only=False, map_location=cpu)
+step:             19072   (expected ~19072)
+model tensors:    161
+keys:             ['model', 'optimizer', 'scheduler', 'step', 'tr_loss', 'vocab_size']
+Required keys present (model/optimizer/scheduler/step): YES
+Verdict:          PASS
+
+----------------------------------------------------------------
+2. LAST 8 ' val ' LINES (train.log)
+----------------------------------------------------------------
+17500 val 3.101969
+17750 val 3.100271
+18000 val 3.099201
+18250 val 3.097827
+18500 val 3.097352
+18750 val 3.097028
+19000 val 3.096668
+19072 val 3.096676
+
+----------------------------------------------------------------
+3. FILE INVENTORY (persistent volume /workspace)
+----------------------------------------------------------------
+Shard dir:        /workspace/makemore/data/edu_fineweb10B
+Shard .npy count: 100 (99 train + 1 val)   [matches expected ~100]
+Shard dir size:   19G	/workspace/makemore/data/edu_fineweb10B
+
+Checkpoints (3):
+  /workspace/makemore/data/checkpoints/ckpt_018800.pt  (1.54 GB)
+  /workspace/makemore/data/checkpoints/ckpt_019000.pt  (1.54 GB)
+  /workspace/makemore/data/checkpoints/ckpt_019072.pt  (1.54 GB)
+
+train.log:        /workspace/makemore/gpts/logs/train.log  (605 KB)
+loss.png:         /workspace/makemore/gpts/loss.png  (64 KB)
+
+----------------------------------------------------------------
+4. DISK USAGE
+----------------------------------------------------------------
+du -sh /workspace: 31G	/workspace
+df -h /workspace:  /dev/sdb        100G   31G   70G  31% /workspace
+
+----------------------------------------------------------------
+5. FINAL GENERATED TEXT SAMPLES (tail of train.out)
+----------------------------------------------------------------
+!!!!!!!!acc!!!!!!!!!!!!???!!!!!!!!!!!!!!!!!!)!!!)!"!!!sim get Enter...
+!!!!!!!!!!
+The effect on sodium is hardly trivial since sodium ions are so much soluble molecules. Sodium has a so called "quenchure" - they harden in solution and easily penetrate the skin, sal
+!!!!!!!!!!!!!!...!! !!!!!! !!!!.!!!!!!!!!!!!
+Register now and get sent them lying across the junk in
+etc you may guess stacking.
+It is
+!BUZZ!!Fumyellow!Foliage:Yellow!Florence!z!z!!xy!Z!"
+BaserangeWackyD-Sun Boy Church Amber...
+Knuffle some stamps and cards to decorate
+!!!!!!!!!!!!!!!"!!"Reading your Course:Look!!!!, you will have pressing down Glen before d'Oraine '!, your Hearing:' 'Charm!!'
+1955
+!!!!!!"!!!!!!!!!,!!"!!!!!!!!!"!!!"!!!!!"!!!!!'!!! This is another #strip together -Mex
+!!!!!"!!!...!"!!!!!"!!!!!!!!!!.!!!)
+Can you sit still and watch this video to yourself?
+Please allow me to be with you again on
+!!!!!)!!!!!!!!!!!!!),!!!!!!!!"!!!!!! !!!!!!!"
+flame ba and thanks the gods for saving what they loved
+=== [babysit] attempt 1 exited code=0 after 26712s ===
+=== [babysit] DONE: training completed cleanly ===
+=== [babysit] loop ended 21:33:14 ===
+
+----------------------------------------------------------------
+Training babysit outcome: completed cleanly (exit code 0).
+Checkpoint verification PASSED -> proceeding to STOP pod (volume preserved).
+================================================================

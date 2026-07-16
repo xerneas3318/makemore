@@ -1,2 +1,20 @@
 instructions.md
 .gradio/
+
+# python env / caches
+.venv/
+__pycache__/
+*.pyc
+
+# large data & model artifacts (never push these)
+data/edu_fineweb10B/
+data/checkpoints/
+data/hf_cache/
+data/hf_home/
+
+# run logs & scratch outputs
+data/*.log
+data/*.out
+data/*.err
+gpts/logs/
+*.png.tmp
