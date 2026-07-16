@@ -14,6 +14,7 @@ Building language models from scratch, starting at a character level bigram and 
   <summary>Table of Contents</summary>
   <ol>
     <li><a href="#about-the-project">About The Project</a></li>
+    <li><a href="#built-by-hand-for-learning">Built By Hand, For Learning</a></li>
     <li><a href="#the-models">The Models</a></li>
     <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#usage">Usage</a></li>
@@ -47,6 +48,13 @@ GPT-2 124M training loss across roughly 19,072 optimizer steps. Final validation
 * [Gradio](https://www.gradio.app/) (interactive demos)
 * [uv](https://github.com/astral-sh/uv) (environment and packaging)
 * NumPy, matplotlib
+
+## Built By Hand, For Learning
+
+This project exists for me to learn, not to ship a product. The goal was to understand how each model actually works, so the neural network code, from the bigram model through the GPT-2 transformer, is hand written as I worked through the material.
+
+AI was used sparingly and mostly on the edges: generating the dataset download and tokenization script, the inference script, and part of the demo, plus acting as a reference while I worked out some of the distributed training and data loading plumbing. The models themselves, and the reasoning behind them, are my own.
+
 ## The Models
 
 The repository follows the same progression as the course, one folder per stage, each building on the last.
