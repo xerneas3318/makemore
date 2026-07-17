@@ -12,6 +12,9 @@ data/checkpoints/
 data/hf_cache/
 data/hf_home/
 
+# hellaswag eval data (downloaded on demand)
+gpts/hellaswag/
+
 # run logs & scratch outputs
 data/*.log
 data/*.out

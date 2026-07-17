@@ -21,6 +21,7 @@ Building language models from scratch, starting at a character level bigram and 
     <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#the-gpt-2-run">The GPT-2 Run</a></li>
+    <li><a href="#hellaswag-benchmark">HellaSwag Benchmark</a></li>
     <li><a href="#what-i-learned">What I Learned</a></li>
     <li><a href="#where-im-stopping-and-why">Where I'm Stopping and Why</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
@@ -141,6 +142,16 @@ uv run python gpts/inference.py \
   --num-samples 4 --max-new-tokens 120 --temperature 0.9 --top-k 50
 ```
 
+### Evaluate on HellaSwag
+
+Scores the newest checkpoint on the HellaSwag validation set (downloaded once, cached under `gpts/hellaswag`). Random chance is 25%.
+
+```sh
+uv run python gpts/hellaswag_eval.py                 # newest checkpoint, full val set
+uv run python gpts/hellaswag_eval.py --limit 1000    # quick noisy estimate
+uv run python gpts/hellaswag_eval.py --ckpt path/to/ckpt.pt
+```
+
 ### Interactive GPT-2 demo
 
 ```sh
@@ -158,7 +169,34 @@ The final stage reproduces GPT-2 124M end to end.
 * **Training:** bfloat16 autocast, a fixed effective batch of 524,288 tokens held constant through gradient accumulation, cosine learning rate schedule with warmup, gradient clipping at 1.0, and distributed data parallel across GPUs.
 * **Infrastructure:** trained on two RTX 5090 GPUs on RunPod, with a babysit script that resumes on failure and a checkpoint every 200 steps so an interruption never costs the whole run.
 * **Training time:** roughly 7 hours for the full run, using gradient accumulation to keep the 524,288 token effective batch across the two GPUs.
-* **Result:** about 19,072 steps (roughly one pass over the data) to a validation loss near 3.10.
+* **Result:** about 19,072 steps (roughly one pass over the data) to a validation loss near 3.10, and 29.9% on HellaSwag (see below), edging out the GPT-2 124M reference.
+## HellaSwag Benchmark
+
+[HellaSwag](https://rowanz.github.io/hellaswag/) is a commonsense sentence completion benchmark: each example gives a context and four candidate endings, and exactly one is the natural continuation. A base model like this one is scored without any fine tuning by the completion loss method: for each ending, run the model over (context + ending), take the length normalized cross entropy over just the ending tokens, and pick the ending the model finds most likely. Accuracy is the fraction of the 10,042 validation examples it gets right. Random guessing is 25%.
+
+My checkpoint scores **29.9%** (`3005 / 10042`), a hair above the GPT-2 124M reference and, as expected for a 124M model, below GPT-3 Small and the larger GPT-3 sizes. The chart plots it against GPT-3's zero shot scaling curve so you can see where a 2019 era 124M model lands.
+
+<div align="center">
+
+![HellaSwag accuracy vs model scale](gpts/hellaswag.png)
+
+</div>
+
+| Model | Parameters | HellaSwag | Source |
+| :--- | :--- | :--- | :--- |
+| Random chance | n/a | 25.0% | baseline |
+| GPT-2 124M | 124M | 29.6% | build-nanogpt reference (completion style) |
+| **My GPT-2 124M** | **124M** | **29.9%** | **this project** |
+| GPT-3 Small | 125M | 33.7% | GPT-3 paper, zero shot |
+| GPT-3 Medium | 350M | 43.6% | GPT-3 paper, zero shot |
+| GPT-3 Large | 760M | 51.0% | GPT-3 paper, zero shot |
+| GPT-3 XL | 1.3B | 54.7% | GPT-3 paper, zero shot |
+| GPT-3 2.7B | 2.7B | 62.8% | GPT-3 paper, zero shot |
+| GPT-3 6.7B | 6.7B | 67.4% | GPT-3 paper, zero shot |
+| GPT-3 13B | 13B | 70.9% | GPT-3 paper, zero shot |
+| GPT-3 175B | 175B | 78.9% | GPT-3 paper, zero shot |
+
+A note on the comparison: my number and the GPT-2 124M reference both use the length normalized completion style eval in [`gpts/hellaswag_eval.py`](gpts/hellaswag_eval.py), while the GPT-3 figures are the zero shot numbers reported in the GPT-3 paper (Brown et al. 2020, Appendix H). The methods are close but not identical, so treat the GPT-3 curve as the scaling trend rather than an exactly matched apples to apples eval.
 ## What I Learned
 
 Working through every stage by hand, the ideas that stuck:

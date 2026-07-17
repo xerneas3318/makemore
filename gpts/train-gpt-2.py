@@ -165,8 +165,8 @@ class CausalSelfAttention(nn.Module):
         self.n_head = config.n_head
         self.n_embd = config.n_embd
         self.n_layer = config.n_layer
-        self.register_buffer("bias", torch.tril(torch.ones(config.block_size, config.block_size)).view(1, 1, config.block_size, config.block_size))
-        nn.init.normal_(self.c_proj.weight, mean=0.0, std=0.02/math.sqrt(2 * self.n_layer))
+        # nn.init.normal_(self.c_proj.weight, mean=0.0, std=0.02/math.sqrt(2 * self.n_layer))
+        self.c_proj.NANOGPT_SCALE_INIT = 1
 
     def forward(self, x):
         B, T, C = x.size()
@@ -187,6 +187,7 @@ class MLP(nn.Module):  # feedforward
         self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd)
         self.gelu = nn.GELU(approximate='tanh')
         self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd)
+        self.c_proj.NANOGPT_SCALE_INIT = 1
 
     def forward(self, x):
         x = self.c_fc(x)
@@ -229,15 +230,19 @@ class GPT(nn.Module):
         ))
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
         self.transformer.wte.weight = self.lm_head.weight  # weight tying
+        self.config = config
         self.apply(self._init_weights)
 
     def _init_weights(self, module):
+        std = 0.02
         if isinstance(module, nn.Linear):
-            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if hasattr(module, 'NANOGPT_SCALE_INIT'):
+                std *= (2 * self.config.n_layer) ** -0.5
+            nn.init.normal_(module.weight, mean=0.0, std=std)
             if module.bias is not None:
                 nn.init.zeros_(module.bias)  # bias does not init to 0 by default in torch
         elif isinstance(module, nn.Embedding):
-            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            nn.init.normal_(module.weight, mean=0.0, std=std)
 
     def forward(self, idx, targets=None):
         B, T = idx.size()
@@ -415,13 +420,14 @@ if master_process:
     tok = enc.encode(inp)
     for i in range(10):
         out = []
-        context = tok + [0] * (32 - len(tok))
+        context = list(tok)
         for _ in range(50):
-            logits, loss = raw_model(torch.tensor([context], device=device))
+            with torch.no_grad():
+                logits, loss = raw_model(torch.tensor([context], device=device))
             logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
             ix = torch.multinomial(probs, num_samples=1).item()
-            context = context[1:] + [ix]
+            context.append(ix)
             out.append(ix)
         print(enc.decode(out))
 
